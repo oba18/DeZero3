@@ -1,5 +1,5 @@
 """
-step06 手作業によるバックプロパゲーション
+step08 再帰からループへ
 """
 
 import numpy as np
@@ -8,13 +8,29 @@ class Variable:
     def __init__(self, data):
         self.data = data
         self.grad = None
+        self.creator = None
+
+    def set_creator(self, func):
+        self.creator = func
+
+    def backward(self):
+        funcs = [self.creator]
+        while funcs:
+            f = funcs.pop() # 関数を取得
+            x, y = f.input , f.output # 関数の入出力を取得
+            x.grad = f.backward(y.grad)
+
+            if x.creator is not None:
+                funcs.append(x.creator) # 1つ前の関数をリストに追加
 
 class Function:
     def __call__(self, input):
         x = input.data
         y = self.forward(x)
         output = Variable(y)
-        self.input = input # 入力された変数を覚える
+        output.set_creator(self) # 出力変数に生みの親を覚えさせる
+        self.input = input 
+        self.output = output # 出力も覚える
         return output
 
     def forward(self, x):
@@ -54,10 +70,14 @@ a = A(x)
 b = B(a)
 y = C(b)
 
+assert y.creator == C
+assert y.creator.input == b
+assert y.creator.input.creator == B
+assert y.creator.input.creator.input == a
+assert y.creator.input.creator.input.creator == A
+assert y.creator.input.creator.input.creator.input == x
+
 # 逆伝搬
 y.grad = np.array(1.0)
-b.grad = C.backward(y.grad)
-a.grad = B.backward(b.grad)
-x.grad = A.backward(a.grad)
-
+y.backward()
 print (x.grad)
