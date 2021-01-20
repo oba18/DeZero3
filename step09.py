@@ -6,6 +6,10 @@ import numpy as np
 
 class Variable:
     def __init__(self, data):
+        if data is not None:
+            if not isinstance(data, np.ndarray):
+                raise TypeError('{} is not supported'.format(type(data)))
+
         self.data = data
         self.grad = None
         self.creator = None
@@ -30,7 +34,7 @@ class Function:
     def __call__(self, input):
         x = input.data
         y = self.forward(x)
-        output = Variable(y)
+        output = Variable(as_array(y))
         output.set_creator(self) # 出力変数に生みの親を覚えさせる
         self.input = input 
         self.output = output # 出力も覚える
@@ -41,6 +45,7 @@ class Function:
 
     def backward(self, gy):
         raise NotImplementedError()
+    
 
 class Square(Function):
     def forward(self, x):
@@ -67,6 +72,11 @@ def square(x):
 
 def exp(x):
     return Exp()(x)
+
+def as_array(x):
+    if np.isscalar(x):
+        return np.array(x)
+    return x
 
 
 # 順伝搬
